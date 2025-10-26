@@ -77,9 +77,11 @@ void* checkRows(void* arg) {
   pthread_exit((void*) result); 
 }
 
+// checks all the columns for validity and completeness
 void* checkColumns(void* arg) {
   parameters *p = (parameters*) arg; 
   Result* result = malloc(sizeof(Result));
+  int size = p->size + 1; 
 
   //error handling 
   if(!result) {
@@ -87,12 +89,31 @@ void* checkColumns(void* arg) {
     pthread_exit(NULL); 
   }
 
-  // preset is true unless we solve otherwise 
+  // preset is true 
   result->valid = true; 
   result->complete = true; 
 
-  int hello = p->grid[1][2]; 
-  printf("hello from thread 2: %d\n", hello); 
+  for(int col = 1; col < size; col++) {
+    bool seen[size + 1]; 
+    memset(seen, false, sizeof(seen)); 
+
+    for(int row = 1; row < size; row++) {
+      int num = p->grid[col][row]; 
+      if(num == 0) {
+        result->complete = false; 
+      }
+
+      if(seen[num] == true) {
+        result->valid = false; 
+      }
+
+      if(result->valid == false && result->complete == false) {
+        pthread_exit((void*) result); 
+      }
+
+      seen[num] = true; 
+    }
+  }
 
   // check every element in the row
   pthread_exit((void*) result); 
@@ -121,9 +142,8 @@ void* checkBoxes(void* arg) {
 
 //MAIN threadder 
 void checkPuzzle(int psize, int **grid, bool *complete, bool *valid) {
-  // YOUR CODE GOES HERE and in HELPER FUNCTIONS
-
-  // final result function 
+  
+  // base 
   *valid = true;
   *complete = true;
 
@@ -150,6 +170,7 @@ void checkPuzzle(int psize, int **grid, bool *complete, bool *valid) {
 
   // result from thread 1:
   printf("ROW CHECK valid: %d complete: %d \n", results[0]->valid, results[0]->complete); 
+  printf("COL CHECK valid: %d complete: %d \n", results[1]->valid, results[1]->complete); 
 }
 
 // takes filename and pointer to grid[][]
