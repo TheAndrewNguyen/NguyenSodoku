@@ -3,7 +3,16 @@
 # Script to compile and run sudoku program
 rm -f sudoku
 gcc -Wall -Wextra sudoku.c -o sudoku
+
+echo "VALID PUZZLE COMING YOUR WAY" 
+./sudoku puzzle2-valid.txt
+
+echo "INVALID PUZZLE COMING YOUR WAY" 
 ./sudoku puzzle2-invalid.txt
+
+echo "VALID PUZZLE COMING YOUR WAY" 
+./sudoku puzzle9-valid.txt
+
 
 # to check for memory leaks, use
 # valgrind ./sudoku puzzle9-good.txt

@@ -6,9 +6,9 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include<stdlib.h> 
+#include <string.h> 
 
 #define NUM_THREADS 3 // number of threads im using
-
 
 // takes puzzle size and grid[][] representing sudoku puzzle
 // and two booleans to be assigned: complete and valid.
@@ -27,8 +27,10 @@ typedef struct {
   bool complete; 
 } Result;
 
+// checks all the rows in the sodoku puzzle for completeness and validity 
 void* checkRows(void* arg) {
   parameters *p = (parameters*) arg; 
+  int size = p->size + 1; 
   Result* result = malloc(sizeof(Result));
 
   //error handling 
@@ -37,15 +39,41 @@ void* checkRows(void* arg) {
     pthread_exit(NULL); 
   }
 
-  int hello = p->grid[1][2]; 
-  printf("hello from thread 1: %d\n", hello); 
-
-
   // preset is true unless we solve otherwise 
   result->valid = true; 
   result->complete = true; 
   
-  // check every element in the row
+  // check all the rows
+  for(int row = 1; row < size; row++) { // row
+    bool seen[size + 1]; 
+    memset(seen, false, sizeof(seen)); 
+
+    // check all the cols
+    for(int col = 1; col < size; col++) {
+
+      int num = p->grid[row][col]; 
+
+      // completeness check 
+      if(num == 0) {
+        result->complete = false; 
+      }
+      
+      // validity check 
+      if(seen[num] == true) {
+        result->valid = false; 
+      }
+
+      // update seen 
+      seen[num] = true; 
+      
+      // early exit if both values are false 
+      if(result->valid == false && result->complete == false) { 
+        pthread_exit((void*) result); 
+      }
+    }
+  }
+
+  // return findings
   pthread_exit((void*) result); 
 }
 
@@ -119,6 +147,9 @@ void checkPuzzle(int psize, int **grid, bool *complete, bool *valid) {
   for(int i = 0; i < NUM_THREADS; i++) {
     pthread_join(threads[i], (void**)&results[i]); 
   }
+
+  // result from thread 1:
+  printf("ROW CHECK valid: %d complete: %d \n", results[0]->valid, results[0]->complete); 
 }
 
 // takes filename and pointer to grid[][]
