@@ -5,8 +5,9 @@
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
-#include<stdlib.h> 
+#include <stdlib.h> 
 #include <string.h> 
+#include <math.h> 
 
 #define NUM_THREADS 3 // number of threads im using
 
@@ -121,23 +122,53 @@ void* checkColumns(void* arg) {
 
 
 void* checkBoxes(void* arg) {
-  parameters *p = (parameters*) arg; 
+  parameters *p = (parameters*) arg;
+  int psize = p->size + 1;
   Result* result = malloc(sizeof(Result));
 
-  //error handling 
-  if(!result) {
-    perror("malloc failed");
-    pthread_exit(NULL); 
+  // error handling 
+  if (!result) { 
+     perror("malloc failed");
+     pthread_exit(NULL); 
   }
 
-  // preset is true unless we solve otherwise 
-  result->valid = true; 
-  result->complete = true; 
+  result->valid = true;
+  result->complete = true;
 
-  int hello = p->grid[1][2]; 
-  printf("hello from thread 3: %d\n", hello); 
-  // check every element in the row
-  pthread_exit((void*) result); 
+  int boxSize = (int)sqrt(psize); // size of each box
+
+  // iterate over all boxes
+  for (int boxRow = 0; boxRow < boxSize; boxRow++) {
+      for (int boxCol = 0; boxCol < boxSize; boxCol++) {
+          bool seen[psize + 1];
+          memset(seen, false, sizeof(seen));
+
+          // iterate over cells in the box
+          for (int i = 1; i < boxSize; i++) {
+              for (int j = 1; j <= boxSize; j++) {
+                  int row = boxRow * boxSize + i;
+                  int col = boxCol * boxSize + j;
+                  int num = p->grid[row][col];
+
+                  if (num == 0) {
+                    result->complete = false;
+                  }
+
+                  if(seen[num] == true) { 
+                    result->valid = false;
+                  }
+
+                  seen[num] = true;
+
+                  // early exit if both invalid and incomplete
+                  if (!result->valid && !result->complete) {
+                      pthread_exit((void*)result);
+                  }
+              }
+          }
+      }
+  }
+  pthread_exit((void*)result);
 }
 
 //MAIN threadder 
@@ -168,9 +199,8 @@ void checkPuzzle(int psize, int **grid, bool *complete, bool *valid) {
     pthread_join(threads[i], (void**)&results[i]); 
   }
 
-  // result from thread 1:
-  printf("ROW CHECK valid: %d complete: %d \n", results[0]->valid, results[0]->complete); 
-  printf("COL CHECK valid: %d complete: %d \n", results[1]->valid, results[1]->complete); 
+  *valid = results[0]->valid && results[1]->valid && results[2]->valid; 
+  *complete = results[0]->complete && results[1]->complete && results[2]->complete; 
 }
 
 // takes filename and pointer to grid[][]
